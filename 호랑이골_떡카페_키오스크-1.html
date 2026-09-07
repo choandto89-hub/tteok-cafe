@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>호랑이골 떡카페 키오스크</title>
+<style>
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:"Arial","Noto Sans KR",sans-serif;
+    background:linear-gradient(180deg,#fff8ea 0%,#fffdf8 100%);
+    color:#3d2b1f;
+    min-height:100vh;
+  }
+  header{
+    background:#f3a44f;
+    padding:20px 16px;
+    text-align:center;
+    box-shadow:0 3px 10px rgba(0,0,0,.12);
+  }
+  header h1{
+    margin:0;
+    font-size:clamp(28px,5vw,48px);
+    color:#fff;
+    text-shadow:0 2px 4px rgba(0,0,0,.15);
+  }
+  header p{
+    margin:8px 0 0;
+    color:#fffaf2;
+    font-size:clamp(15px,2.6vw,22px);
+    font-weight:700;
+  }
+  .wrap{
+    display:grid;
+    grid-template-columns:1.5fr .8fr;
+    gap:18px;
+    padding:18px;
+    max-width:1200px;
+    margin:0 auto;
+  }
+  .menu-panel,.cart-panel{
+    background:#fff;
+    border-radius:24px;
+    box-shadow:0 8px 22px rgba(98,61,25,.12);
+    padding:18px;
+  }
+  .panel-title{
+    font-size:clamp(22px,3vw,30px);
+    font-weight:900;
+    margin:0 0 14px;
+  }
+  .menu-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:14px;
+  }
+  .item{
+    border:none;
+    border-radius:22px;
+    padding:20px 12px;
+    background:#fff1c9;
+    cursor:pointer;
+    min-height:140px;
+    transition:.12s transform,.12s box-shadow;
+    box-shadow:0 4px 10px rgba(0,0,0,.08);
+  }
+  .item:active{transform:scale(.97)}
+  .emoji{font-size:48px;display:block;margin-bottom:8px}
+  .name{font-size:24px;font-weight:900}
+  .price{font-size:20px;margin-top:6px;color:#b55e14;font-weight:800}
+  .cart-list{
+    min-height:250px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .empty{
+    color:#8d7b6a;
+    text-align:center;
+    padding:50px 10px;
+    font-size:20px;
+    line-height:1.6;
+  }
+  .cart-row{
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:8px;
+    align-items:center;
+    background:#fff8ec;
+    padding:12px;
+    border-radius:16px;
+  }
+  .cart-name{font-weight:900;font-size:19px}
+  .cart-sub{font-size:15px;color:#876d57;margin-top:3px}
+  .qty{
+    display:flex;align-items:center;gap:8px;
+  }
+  .qty button{
+    width:38px;height:38px;border:none;border-radius:12px;
+    background:#f3a44f;color:white;font-size:24px;font-weight:900;cursor:pointer;
+  }
+  .qty span{font-size:20px;font-weight:900;min-width:24px;text-align:center}
+  .summary{
+    border-top:2px dashed #e6caa9;
+    margin-top:14px;padding-top:14px;
+  }
+  .total{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:26px;font-weight:900;margin-bottom:14px;
+  }
+  .pay-buttons{
+    display:grid;grid-template-columns:1fr 1fr;gap:10px;
+  }
+  .pay-buttons button,.reset{
+    border:none;border-radius:16px;padding:16px 10px;
+    font-size:20px;font-weight:900;cursor:pointer;
+  }
+  .cash{background:#7ebf72;color:#fff}
+  .card{background:#5e84d6;color:#fff}
+  .reset{width:100%;margin-top:10px;background:#ece6df;color:#5e5148}
+  .modal{
+    position:fixed;inset:0;background:rgba(0,0,0,.45);
+    display:none;align-items:center;justify-content:center;padding:20px;z-index:10;
+  }
+  .modal.show{display:flex}
+  .modal-box{
+    background:#fff;border-radius:28px;padding:28px 22px;
+    max-width:520px;width:100%;text-align:center;
+    box-shadow:0 15px 40px rgba(0,0,0,.25);
+  }
+  .modal-icon{font-size:70px}
+  .modal h2{font-size:32px;margin:10px 0}
+  .modal p{font-size:21px;line-height:1.6;margin:10px 0 22px}
+  .modal button{
+    border:none;border-radius:16px;padding:15px 30px;
+    font-size:20px;font-weight:900;background:#f3a44f;color:#fff;cursor:pointer;
+  }
+  .toast{
+    position:fixed;left:50%;bottom:28px;transform:translateX(-50%);
+    background:#3d2b1f;color:#fff;padding:12px 20px;border-radius:999px;
+    font-size:17px;font-weight:800;opacity:0;pointer-events:none;transition:.2s;
+  }
+  .toast.show{opacity:1}
+  @media(max-width:760px){
+    .wrap{grid-template-columns:1fr;padding:12px}
+    .menu-grid{grid-template-columns:repeat(2,1fr)}
+    .item{min-height:125px;padding:16px 8px}
+    .emoji{font-size:40px}
+    .name{font-size:20px}
+    .price{font-size:18px}
+    .cart-list{min-height:180px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🐯 호랑이골 떡카페 🐯</h1>
+  <p>먹고 싶은 떡을 눌러 주문해 보세요!</p>
+</header>
+
+<main class="wrap">
+  <section class="menu-panel">
+    <h2 class="panel-title">🍡 떡을 골라요</h2>
+    <div class="menu-grid" id="menu"></div>
+  </section>
+
+  <aside class="cart-panel">
+    <h2 class="panel-title">🧺 주문 바구니</h2>
+    <div class="cart-list" id="cartList"></div>
+    <div class="summary">
+      <div class="total"><span>총 금액</span><span id="total">0원</span></div>
+      <div class="pay-buttons">
+        <button class="cash" onclick="pay('현금')">💵 현금결제</button>
+        <button class="card" onclick="pay('카드')">💳 카드결제</button>
+      </div>
+      <button class="reset" onclick="resetCart()">처음부터 다시 주문하기</button>
+    </div>
+  </aside>
+</main>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-icon" id="modalIcon">🎉</div>
+    <h2 id="modalTitle">결제가 완료되었어요!</h2>
+    <p id="modalText"></p>
+    <button onclick="closeModal()">확인</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const items = [
+  {name:'꿀떡', price:1000, emoji:'🍯'},
+  {name:'송편', price:1000, emoji:'🌙'},
+  {name:'절편', price:1000, emoji:'🌼'},
+  {name:'화전', price:1000, emoji:'🌸'},
+  {name:'가래떡', price:1000, emoji:'🥢'},
+  {name:'떡세트', price:1000, emoji:'🎁'}
+];
+
+const cart = {};
+const menu = document.getElementById('menu');
+const cartList = document.getElementById('cartList');
+const totalEl = document.getElementById('total');
+
+items.forEach((item, index)=>{
+  const btn = document.createElement('button');
+  btn.className='item';
+  btn.innerHTML = `
+    <span class="emoji">${item.emoji}</span>
+    <div class="name">${item.name}</div>
+    <div class="price">${item.price.toLocaleString()}원</div>
+  `;
+  btn.onclick=()=>addItem(index);
+  menu.appendChild(btn);
+});
+
+function addItem(index){
+  cart[index] = (cart[index] || 0) + 1;
+  renderCart();
+  showToast(`${items[index].name}을(를) 담았어요!`);
+}
+
+function changeQty(index, delta){
+  if(!cart[index]) return;
+  cart[index] += delta;
+  if(cart[index] <= 0) delete cart[index];
+  renderCart();
+}
+
+function renderCart(){
+  cartList.innerHTML='';
+  const keys = Object.keys(cart);
+  if(keys.length===0){
+    cartList.innerHTML=`<div class="empty">아직 고른 떡이 없어요.<br>왼쪽의 떡을 눌러 보세요 😊</div>`;
+  } else {
+    keys.forEach(k=>{
+      const item=items[k], qty=cart[k];
+      const row=document.createElement('div');
+      row.className='cart-row';
+      row.innerHTML=`
+        <div>
+          <div class="cart-name">${item.emoji} ${item.name}</div>
+          <div class="cart-sub">${(item.price*qty).toLocaleString()}원</div>
+        </div>
+        <div class="qty">
+          <button aria-label="수량 줄이기" onclick="changeQty(${k},-1)">−</button>
+          <span>${qty}</span>
+          <button aria-label="수량 늘리기" onclick="changeQty(${k},1)">+</button>
+        </div>`;
+      cartList.appendChild(row);
+    });
+  }
+  const total = keys.reduce((sum,k)=>sum + items[k].price*cart[k],0);
+  totalEl.textContent=total.toLocaleString()+'원';
+}
+
+function pay(method){
+  const keys = Object.keys(cart);
+  if(keys.length===0){
+    showToast('먼저 떡을 골라 주세요!');
+    return;
+  }
+  const total = keys.reduce((sum,k)=>sum + items[k].price*cart[k],0);
+  document.getElementById('modalIcon').textContent = method==='현금' ? '💵' : '💳';
+  document.getElementById('modalTitle').textContent = `${method}결제가 완료되었어요!`;
+  document.getElementById('modalText').innerHTML =
+    `총 <b>${total.toLocaleString()}원</b>입니다.<br>맛있는 떡이 준비되고 있어요! 🐯🍡`;
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal(){
+  document.getElementById('modal').classList.remove('show');
+  resetCart();
+}
+
+function resetCart(){
+  Object.keys(cart).forEach(k=>delete cart[k]);
+  renderCart();
+}
+
+function showToast(text){
+  const t=document.getElementById('toast');
+  t.textContent=text;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1200);
+}
+
+renderCart();
+</script>
+</body>
+</html>
